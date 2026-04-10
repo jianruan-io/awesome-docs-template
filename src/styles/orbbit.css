@@ -1,0 +1,86 @@
+/* ===== Orbbit Brand Overrides ===== */
+
+/* Starlight accent colors — teal for links/highlights, gray for selections */
+:root {
+	--sl-color-accent-low: hsl(180, 45%, 15%);
+	--sl-color-accent: hsl(180, 45%, 42%);
+	--sl-color-accent-high: hsl(0, 0%, 95%);
+}
+
+:root[data-theme="dark"] {
+	--sl-color-accent-low: hsl(0, 0%, 22%);
+	--sl-color-accent: hsl(180, 40%, 52%);
+	--sl-color-accent-high: hsl(0, 0%, 90%);
+}
+
+/* ===== Hide sidebar topic list (topics are in the header now) ===== */
+ul.starlight-sidebar-topics {
+	display: none !important;
+}
+
+/* ===== Site title styling ===== */
+/* Logo image is used instead of text — see Header.astro */
+
+/* ===== Social icon color — global to prevent FOUC from Starlight accent ===== */
+header .social-icons a {
+	color: #1a1a1a !important;
+}
+:root[data-theme="dark"] header .social-icons a {
+	color: #e5e5e5 !important;
+}
+
+/* ===== Mermaid Diagram Container ===== */
+.diagram-container {
+	width: 100%;
+	min-height: 200px;
+	max-height: 90vh;
+	overflow: hidden;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: 8px;
+	position: relative;
+	margin-bottom: 1rem;
+	background: var(--sl-color-bg);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.mermaid-svg-container svg foreignObject {
+	overflow: visible !important;
+}
+
+.mermaid-svg-container svg foreignObject div {
+	overflow: visible !important;
+	white-space: normal !important;
+}
+
+/* ===== Content styling ===== */
+.sl-markdown-content img {
+	margin-left: auto;
+	margin-right: auto;
+	display: block;
+}
+
+.sl-markdown-content img + em {
+	text-align: center;
+	display: block;
+	margin-top: 0.5em;
+}
+
+.sl-markdown-content .contains-task-list li {
+	margin-top: 0.5rem;
+	margin-bottom: 0.5rem;
+}
+
+/* ===== Responsive diagrams ===== */
+@media (max-width: 768px) {
+	.diagram-container {
+		max-height: 80vh;
+	}
+}
+
+@media (max-width: 480px) {
+	.diagram-container {
+		max-height: 70vh;
+	}
+}

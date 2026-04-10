@@ -1,0 +1,182 @@
+---
+import { Icon, Badge } from "@astrojs/starlight/components";
+import type { StarlightRouteData } from "@astrojs/starlight/route-data";
+
+type Link = Extract<StarlightRouteData["sidebar"][0], { type: "link" }>;
+type Group = Extract<StarlightRouteData["sidebar"][0], { type: "group" }> & {
+	hasActivePage?: boolean;
+};
+type SidebarEntry = Link | Group;
+
+interface Props {
+	sublist: SidebarEntry[];
+	nested?: boolean;
+}
+
+const { sublist, nested } = Astro.props;
+
+/** Flatten a sidebar tree into a flat list of link entries. */
+function flattenSidebar(entries: SidebarEntry[]): SidebarEntry[] {
+	return entries.flatMap((entry: SidebarEntry) =>
+		entry.type === "group" ? flattenSidebar(entry.entries) : entry,
+	);
+}
+
+/**
+ * SidebarRestorePoint counter — inlined from Starlight's internal component.
+ */
+const currentGroupIndexSymbol = Symbol.for("starlight-sidebar-group-index");
+const locals = Astro.locals as typeof Astro.locals & {
+	[currentGroupIndexSymbol]: number;
+};
+
+function nextRestoreIndex(): number {
+	const index = locals[currentGroupIndexSymbol] || 0;
+	locals[currentGroupIndexSymbol] = index + 1;
+	return index;
+}
+
+const restoreIndices = sublist.map((entry) =>
+	entry.type === "group" ? nextRestoreIndex() : -1,
+);
+---
+
+<ul
+	class:list={[
+		!nested
+			? "top-level list-none p-0"
+			: "mt-0.5 ml-3 list-none border-l border-[var(--sidebar-border)] p-0 pl-2",
+	]}
+>
+	{
+		sublist.map((entry, idx) => (
+			<li class="break-words">
+				{entry.type === "link" ? (
+					<a
+						href={entry.href}
+						aria-current={entry.isCurrent ? "page" : undefined}
+						class:list={[
+							"flex min-h-[2.125rem] items-start rounded-lg px-3 py-1.5 text-sm font-medium no-underline",
+							"outline-2 outline-offset-[-2px] outline-transparent focus-visible:outline-blue-500 dark:focus-visible:outline-blue-400",
+							entry.isCurrent
+								? "!bg-[var(--sidebar-active-bg)] !font-semibold !text-[var(--sidebar-active-text)]"
+								: "transition-colors duration-150 text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-hover-text)]",
+							entry.attrs.class,
+						]}
+						{...entry.attrs}
+					>
+						<span>{entry.label}</span>
+						{entry.badge && (
+							<Badge
+								variant={entry.badge.variant}
+								class={`ml-[0.5em] ${entry.badge.class ?? ""}`}
+								text={entry.badge.text}
+							/>
+						)}
+					</a>
+				) : !nested ? (
+					<div class="sidebar-section">
+						<div class="sidebar-section-label">
+							<span>{entry.label}</span>
+							{entry.badge && (
+								<Badge
+									variant={entry.badge.variant}
+									class={`ml-[0.5em] ${entry.badge.class ?? ""}`}
+									text={entry.badge.text}
+								/>
+							)}
+						</div>
+						<div class="sidebar-section-body">
+							<Astro.self sublist={entry.entries} nested />
+						</div>
+					</div>
+				) : (
+					<details
+						class="group/accordion"
+						open={
+							flattenSidebar(entry.entries).some(
+								(i) => i.type === "link" && i.isCurrent,
+							) || !entry.collapsed
+						}
+					>
+						<summary class:list={[
+							"group/expander flex min-h-[2.125rem] cursor-pointer items-center justify-between rounded-lg px-3 py-1.5 text-sm no-underline outline-2 outline-offset-[-2px] outline-transparent transition-colors duration-150 select-none focus-visible:outline-blue-500 dark:focus-visible:outline-blue-400 [&::-webkit-details-marker]:hidden [&::marker]:hidden",
+							"hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-hover-text)]",
+							"font-medium text-[var(--sidebar-text)]",
+						]}>
+							<span class="group-label">
+								<span>{entry.label}</span>
+								{entry.badge && (
+									<Badge
+										variant={entry.badge.variant}
+										class={`ml-[0.5em] ${entry.badge.class ?? ""}`}
+										text={entry.badge.text}
+									/>
+								)}
+							</span>
+							<Icon
+								name="right-caret"
+								class="caret shrink-0 ml-auto -mr-px text-base text-[var(--sidebar-text)] opacity-50 group-hover/expander:text-[var(--sidebar-hover-text)] transition-transform duration-250"
+								size="1.25rem"
+							/>
+						</summary>
+						<sl-sidebar-restore data-index={restoreIndices[idx]} />
+						<div class="sidebar-accordion grid grid-rows-[0fr] group-open/accordion:grid-rows-[1fr]">
+							<div class="sidebar-accordion-inner overflow-hidden min-h-0">
+								<Astro.self sublist={entry.entries} nested />
+							</div>
+						</div>
+					</details>
+				)}
+			</li>
+		))
+	}
+</ul>
+
+<style is:global>
+	/* Caret rotation */
+	.sidebar-content [open] > summary .caret {
+		transform: rotate(90deg);
+	}
+	.sidebar-content [dir="rtl"] .caret {
+		transform: rotateZ(180deg);
+	}
+
+	/* ── Section heading styles (L1 groups) ── */
+	.sidebar-section {
+		margin-top: 1rem;
+		padding-top: 0.75rem;
+		border-top: 1px solid var(--sidebar-border);
+	}
+
+	/* First section heading in the list — no top border */
+	.top-level > li:first-child > .sidebar-section {
+		margin-top: 0;
+		padding-top: 0;
+		border-top: none;
+	}
+
+	.sidebar-section-label {
+		padding: 0.25rem 0.75rem 0.375rem;
+		font-size: 0.75rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--sl-color-white);
+	}
+
+	/* Remove nested indent from section body's direct child list */
+	.sidebar-section-body > ul {
+		margin-left: 0 !important;
+		border-left: none !important;
+		padding-left: 0 !important;
+		margin-top: 0 !important;
+	}
+</style>
+
+<style>
+	/* Spacing between sibling items */
+	ul > li + li {
+		margin-top: 1px;
+	}
+</style>

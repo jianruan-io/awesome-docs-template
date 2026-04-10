@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+
+# Build output
+.next/
+.astro/
+dist/
+out/
+
+# Environment variables
+.env
+.env*.local
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Misc
+.DS_Store
+*.pem
+*.png
+!public/**/*.png
+*.pdf
+setup-company-doc.*
+
+# MCP config (machine-specific paths; see .mcp.json.example)
+.mcp.json
+
+# One-off migration scripts
+scripts/migrate-to-starlight.mjs
+scripts/fix-missing-titles.mjs
+scripts/find-uncovered-pages.mjs
+scripts/sidebar-config.json
+
+# Link checker output
+lychee-out.md
+
+# Claude
+.claude/settings.local.json
+
+# Search index (generated)
+public/_pagefind/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+
+# Vercel
+.vercel
+
+# Tool configs
+.playwright-mcp/
+.serena/
+tsconfig.tsbuildinfo

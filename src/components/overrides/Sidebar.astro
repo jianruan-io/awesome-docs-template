@@ -1,0 +1,336 @@
+---
+import MobileMenuFooter from 'virtual:starlight/components/MobileMenuFooter';
+import SidebarPersister from '@astrojs/starlight/components/SidebarPersister.astro';
+import SidebarSublist from './SidebarSublist.astro';
+
+const { sidebar } = Astro.locals.starlightRoute;
+---
+
+<div
+	class="sticky top-0 z-[1] flex flex-col gap-2 bg-[var(--sl-color-black)] py-3.5 min-[50rem]:bg-[var(--sl-color-bg-sidebar)]"
+>
+	<!-- Search Input -->
+	<div class="relative">
+		<input
+			type="search"
+			id="sidebar-search"
+			placeholder="Search sidebar..."
+			aria-label="Search sidebar navigation"
+			autocomplete="off"
+			spellcheck="false"
+			class="box-border min-h-[2.125rem] w-full rounded-lg border border-neutral-200 bg-transparent px-3 pr-10 text-sm text-neutral-950 placeholder-[var(--color-cl1-gray-4)] outline-2 outline-offset-2 outline-transparent transition-colors duration-150 focus-visible:outline-blue-500 dark:border-neutral-700 dark:text-neutral-100 dark:placeholder-[var(--color-cl1-gray-6)] dark:focus-visible:outline-blue-400"
+		/>
+		<div class="sidebar-search-icon"></div>
+	</div>
+
+	<!-- No Results Message -->
+	<div
+		id="sidebar-no-results"
+		class="hidden p-4 text-center text-sm text-gray-500 dark:text-gray-400"
+	>
+		No results found.
+	</div>
+</div>
+
+<SidebarPersister>
+	<SidebarSublist sublist={sidebar} />
+</SidebarPersister>
+
+<div class="md:sl-hidden">
+	<MobileMenuFooter />
+</div>
+
+<script>
+	function initSidebarSearch() {
+		const searchInput = document.getElementById(
+			"sidebar-search",
+		) as HTMLInputElement;
+		const noResultsMessage = document.getElementById(
+			"sidebar-no-results",
+		) as HTMLElement;
+		const sidebarContent = document.querySelector(".sidebar-content");
+
+		if (!searchInput || !sidebarContent || !noResultsMessage) return;
+
+		// ── Animated <details> toggle ──
+		const animating = new WeakSet<HTMLDetailsElement>();
+		const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+		const DURATION = 250;
+		const EASING = "cubic-bezier(0.87, 0, 0.13, 1)";
+
+		function animateAccordion(
+			details: HTMLDetailsElement,
+			from: string,
+			to: string,
+			onDone?: () => void,
+		) {
+			const el = details.querySelector<HTMLElement>(
+				":scope > .sidebar-accordion",
+			);
+			if (!el || reducedMotion.matches) {
+				onDone?.();
+				return;
+			}
+			if (animating.has(details)) el.getAnimations().forEach((a) => a.cancel());
+			animating.add(details);
+
+			const anim = el.animate(
+				[{ gridTemplateRows: from }, { gridTemplateRows: to }],
+				{
+					duration: DURATION,
+					easing: EASING,
+					fill: onDone ? "forwards" : "none",
+				},
+			);
+			const cleanup = () => animating.delete(details);
+			anim.oncancel = cleanup;
+			anim.onfinish = () => {
+				onDone?.();
+				anim.cancel();
+				cleanup();
+			};
+		}
+		sidebarContent.addEventListener("click", (e) => {
+			const summary = (e.target as HTMLElement).closest("summary");
+			if (!summary) return;
+			const details = summary.parentElement as HTMLDetailsElement | null;
+			if (!details || details.tagName !== "DETAILS") return;
+
+			e.preventDefault();
+
+			if (details.open) {
+				animateAccordion(details, "1fr", "0fr", () => {
+					details.open = false;
+				});
+			} else {
+				details.open = true;
+				animateAccordion(details, "0fr", "1fr");
+			}
+		});
+
+		document.addEventListener("astro:before-swap", () => {
+			sidebarContent
+				?.querySelectorAll<HTMLElement>(".sidebar-accordion")
+				.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+		});
+
+		const originalState: Map<Element, boolean> = new Map();
+
+		function storeOriginalState() {
+			if (originalState.size === 0) {
+				const detailsElements = sidebarContent!.querySelectorAll("details");
+				detailsElements.forEach((details) => {
+					originalState.set(details, details.open);
+				});
+			}
+		}
+
+		function matchesAllTerms(text: string, searchTerms: string[]): boolean {
+			const lowerText = text.toLowerCase();
+			return searchTerms.every((term) => lowerText.includes(term));
+		}
+
+		function showDirectChildren(details: HTMLDetailsElement) {
+			details.open = true;
+			const directList = details.querySelector(
+				":scope > .sidebar-accordion > .sidebar-accordion-inner > ul",
+			);
+			if (directList) {
+				const directChildren = directList.querySelectorAll(":scope > li");
+				directChildren.forEach((child) => {
+					(child as HTMLElement).style.display = "";
+				});
+			}
+		}
+
+		function showParentChain(element: Element) {
+			let parent = element.parentElement;
+			while (parent && parent !== sidebarContent) {
+				if (parent.tagName === "LI") {
+					(parent as HTMLElement).style.display = "";
+				}
+				if (parent.tagName === "DETAILS") {
+					(parent as HTMLDetailsElement).open = true;
+				}
+				parent = parent.parentElement;
+			}
+		}
+
+		function filterSidebarItems(query: string) {
+			const items = sidebarContent!.querySelectorAll("li");
+			const detailsElements = sidebarContent!.querySelectorAll("details");
+
+			if (!query.trim()) {
+				items.forEach((item) => {
+					(item as HTMLElement).style.display = "";
+				});
+				detailsElements.forEach((details) => {
+					const originalOpen = originalState.get(details);
+					if (originalOpen !== undefined) {
+						(details as HTMLDetailsElement).open = originalOpen;
+					}
+				});
+				noResultsMessage.classList.add("hidden");
+				return;
+			}
+
+			const searchTerms = query
+				.toLowerCase()
+				.split(/\s+/)
+				.filter((term) => term.length > 0);
+
+			items.forEach((item) => {
+				(item as HTMLElement).style.display = "none";
+			});
+			detailsElements.forEach((details) => {
+				(details as HTMLDetailsElement).open = false;
+			});
+
+			const matchedItems = new Set<Element>();
+
+			// Check folder matches
+			detailsElements.forEach((details) => {
+				const summary = details.querySelector("summary");
+				if (summary) {
+					const summaryText = summary.textContent || "";
+					if (matchesAllTerms(summaryText, searchTerms)) {
+						const parentLi = details.closest("li");
+						if (parentLi && !matchedItems.has(parentLi)) {
+							(parentLi as HTMLElement).style.display = "";
+							showDirectChildren(details);
+							showParentChain(parentLi);
+							matchedItems.add(parentLi);
+						}
+					}
+				}
+			});
+
+			// Check page matches
+			items.forEach((item) => {
+				if (matchedItems.has(item)) return;
+				const link = item.querySelector("a");
+				const summary = item.querySelector("summary");
+				if (summary) return;
+				if (link) {
+					const linkText = link.textContent || "";
+					if (matchesAllTerms(linkText, searchTerms)) {
+						(item as HTMLElement).style.display = "";
+						showParentChain(item);
+						matchedItems.add(item);
+					}
+				}
+			});
+
+			// Fallback: partial matches
+			if (matchedItems.size === 0) {
+				items.forEach((item) => {
+					const textContent = item.textContent?.toLowerCase() || "";
+					const link = item.querySelector("a");
+					const linkText = link?.textContent?.toLowerCase() || "";
+					const summary = item.querySelector("summary");
+					const summaryText = summary?.textContent?.toLowerCase() || "";
+
+					const hasPartialMatch = searchTerms.some(
+						(term) =>
+							textContent.includes(term) ||
+							linkText.includes(term) ||
+							summaryText.includes(term),
+					);
+
+					if (hasPartialMatch) {
+						(item as HTMLElement).style.display = "";
+						if (summary) {
+							const details = item.querySelector("details");
+							if (details) {
+								showDirectChildren(details);
+							}
+						}
+						showParentChain(item);
+						matchedItems.add(item);
+					}
+				});
+			}
+
+			if (matchedItems.size === 0) {
+				noResultsMessage.classList.remove("hidden");
+			} else {
+				noResultsMessage.classList.add("hidden");
+			}
+		}
+
+		searchInput.addEventListener("input", (e) => {
+			storeOriginalState();
+			const query = (e.target as HTMLInputElement).value;
+			filterSidebarItems(query);
+		});
+
+		searchInput.addEventListener("keydown", (e) => {
+			if (e.key === "Escape") {
+				searchInput.value = "";
+				filterSidebarItems("");
+			}
+		});
+
+		// Clear persisted open[] on link click during search
+		sidebarContent.addEventListener("click", (e) => {
+			if (!searchInput.value) return;
+			if (!(e.target instanceof Element)) return;
+			if (!e.target.closest("a")) return;
+			try {
+				const storageKey = "sl-sidebar-state";
+				const raw = sessionStorage.getItem(storageKey);
+				const state = JSON.parse(raw || "{}");
+				state.open = [];
+				sessionStorage.setItem(storageKey, JSON.stringify(state));
+			} catch (_) {}
+		});
+
+		document.addEventListener(
+			"keydown",
+			(keyboardEvent) => {
+				const target = keyboardEvent.target;
+				const isInput =
+					target instanceof EventTarget &&
+					(("tagName" in target &&
+						(target.tagName === "INPUT" ||
+							target.tagName === "TEXTAREA" ||
+							target.tagName === "SELECT")) ||
+						("isContentEditable" in target && target.isContentEditable));
+
+				if (keyboardEvent.key === "/" && !isInput) {
+					keyboardEvent.preventDefault();
+					keyboardEvent.stopPropagation();
+					searchInput.focus();
+				}
+			},
+			{ capture: true },
+		);
+	}
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", initSidebarSearch);
+	} else {
+		initSidebarSearch();
+	}
+</script>
+
+<style is:global>
+	.sidebar-search-icon {
+		position: absolute;
+		right: 12px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 1em;
+		height: 1em;
+		-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M17 2H7a5 5 0 0 0-5 5v10a5 5 0 0 0 5 5h10a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5Zm3 15a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10Z'%3E%3C/path%3E%3Cpath d='M15.293 6.707a1 1 0 1 1 1.414 1.414l-8.485 8.486a1 1 0 0 1-1.414-1.415l8.485-8.485Z'%3E%3C/path%3E%3C/svg%3E");
+		mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M17 2H7a5 5 0 0 0-5 5v10a5 5 0 0 0 5 5h10a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5Zm3 15a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v10Z'%3E%3C/path%3E%3Cpath d='M15.293 6.707a1 1 0 1 1 1.414 1.414l-8.485 8.486a1 1 0 0 1-1.414-1.415l8.485-8.485Z'%3E%3C/path%3E%3C/svg%3E");
+		-webkit-mask-size: 100%;
+		mask-size: 100%;
+		background-color: currentColor;
+		pointer-events: none;
+	}
+	.sidebar-content {
+		height: auto !important;
+		min-height: 0 !important;
+	}
+</style>

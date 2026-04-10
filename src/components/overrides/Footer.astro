@@ -1,0 +1,45 @@
+---
+import Pagination from "@astrojs/starlight/components/Pagination.astro";
+
+const splash = Astro.locals.starlightRoute.entry.data.template === "splash";
+---
+
+<footer class="sl-flex">
+	<div class="custom-footer-section w-full">
+		<div class="footer-content">
+			&copy; 2026 Orbbit
+		</div>
+	</div>
+
+	{
+		!splash && (
+			<div class="starlight-footer-section">
+				<Pagination />
+			</div>
+		)
+	}
+</footer>
+
+<style>
+	footer {
+		flex-direction: column-reverse !important;
+	}
+
+	.starlight-footer-section {
+		padding-bottom: 2rem;
+	}
+
+	.custom-footer-section {
+		padding-top: 2rem;
+		border-top: 1px solid var(--sl-color-gray-5);
+	}
+
+	.footer-content {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 1.5rem;
+		font-size: 0.875rem;
+		color: var(--sl-color-gray-3);
+	}
+</style>

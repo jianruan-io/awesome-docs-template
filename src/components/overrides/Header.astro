@@ -1,0 +1,165 @@
+---
+import LanguageSelect from 'virtual:starlight/components/LanguageSelect';
+import SocialIcons from 'virtual:starlight/components/SocialIcons';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+
+const { topics } = Astro.locals.starlightSidebarTopics;
+---
+
+<div class="header-inner">
+	<div class="header-start">
+		<a href="/" class="site-logo-link" aria-label="Your Company home">
+			<span class="site-logo">Your Company LOGO</span>
+		</a>
+	</div>
+	<nav class="topic-nav">
+		{topics.map((topic) => (
+			<a href={topic.link} class:list={['topic-link', { current: topic.isCurrent }]}>
+				{topic.label}
+			</a>
+		))}
+	</nav>
+	<div class="header-end">
+		<div class="header-divider" role="separator"></div>
+		<div class="social-icons">
+			<SocialIcons />
+		</div>
+		<ThemeSelect />
+		<LanguageSelect />
+	</div>
+</div>
+
+<!-- Mobile topic bar (only visible below 50rem) -->
+<nav class="mobile-topic-nav">
+	{topics.map((topic) => (
+		<a href={topic.link} class:list={['topic-link', { current: topic.isCurrent }]}>
+			{topic.label}
+		</a>
+	))}
+</nav>
+
+<style>
+	.header-inner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		height: 100%;
+		gap: 1rem;
+	}
+
+	.header-start {
+		display: flex;
+		align-items: center;
+		flex-shrink: 0;
+	}
+
+	.site-logo-link {
+		display: flex;
+		align-items: center;
+		text-decoration: none;
+	}
+
+	.site-logo {
+		display: inline-flex;
+		align-items: center;
+		height: 2rem;
+		font-size: 1.125rem;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		color: #042f2f;
+		flex-shrink: 0;
+	}
+	:root[data-theme="dark"] .site-logo {
+		color: #ffffff;
+	}
+
+	/* ── Topic nav: hidden on mobile, flex on desktop ── */
+	.topic-nav {
+		display: none;
+		align-items: center;
+		gap: 0.125rem;
+	}
+
+	@media (min-width: 50rem) {
+		.topic-nav {
+			display: flex;
+		}
+	}
+
+	.topic-link {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 2.25rem;
+		padding: 0 0.75rem;
+		border-radius: 0.5rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		white-space: nowrap;
+		text-decoration: none;
+		color: var(--sl-color-gray-2);
+		transition: color 150ms, background-color 150ms;
+	}
+	.topic-link:hover {
+		background-color: var(--sl-color-gray-6);
+		color: var(--sl-color-white);
+	}
+	.topic-link.current {
+		background-color: var(--color-cl1-gray-9);
+		color: var(--color-cl1-black);
+		font-weight: 600;
+	}
+	:root[data-theme="dark"] .topic-link.current {
+		background-color: var(--color-cl1-gray-2);
+		color: var(--color-cl1-white);
+	}
+
+	/* ── Right group: hidden on mobile, flex on desktop ── */
+	.header-end {
+		display: none;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	@media (min-width: 50rem) {
+		.header-end {
+			display: flex;
+		}
+	}
+
+	.header-divider {
+		width: 1px;
+		height: 1rem;
+		background-color: var(--sl-color-gray-5);
+		margin-inline: 0.375rem;
+		flex-shrink: 0;
+	}
+
+	.social-icons {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+		margin-inline-end: 0.5rem;
+	}
+	/* Social icon colors are in orbbit.css (global) to prevent FOUC */
+
+	/* ── Mobile topic bar: visible on mobile, hidden on desktop ── */
+	.mobile-topic-nav {
+		display: flex;
+		gap: 0.125rem;
+		padding: 0.4rem 0.75rem;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+		scrollbar-width: none;
+		border-bottom: 1px solid var(--sl-color-gray-5);
+	}
+	.mobile-topic-nav::-webkit-scrollbar {
+		display: none;
+	}
+
+	@media (min-width: 50rem) {
+		.mobile-topic-nav {
+			display: none;
+		}
+	}
+</style>
