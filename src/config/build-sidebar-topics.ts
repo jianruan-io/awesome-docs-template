@@ -9,7 +9,7 @@ import rootMeta from "../content/docs/_meta";
 import teamMeta from "../content/docs/team/_meta";
 import productMeta from "../content/docs/product/_meta";
 import engineeringMeta from "../content/docs/engineering/_meta";
-import creativeMeta from "../content/docs/creative/_meta";
+import designMeta from "../content/docs/design/_meta";
 import financeMeta from "../content/docs/finance/_meta";
 import legalMeta from "../content/docs/legal/_meta";
 import riskMeta from "../content/docs/risk/_meta";
@@ -27,7 +27,7 @@ const topicMetas: Record<string, MetaConfig> = {
   team: teamMeta,
   product: productMeta,
   engineering: engineeringMeta,
-  creative: creativeMeta,
+  design: designMeta,
   finance: financeMeta,
   legal: legalMeta,
   risk: riskMeta,
